@@ -1,0 +1,111 @@
+const { db } = require('../config/firebase');
+
+// BUG: Error handling is incomplete - needs improvement for the test
+const getTours = async (req, res) => {
+  try {
+    const { location, minPrice, maxPrice } = req.query;
+
+    // Check if using JSON Server mode
+    if (process.env.USE_JSON_SERVER === 'true') {
+      // In JSON Server mode, proxy to JSON Server
+      const fetch = require('node-fetch');
+      const response = await fetch('http://localhost:3002/tours');
+      const tours = await response.json();
+      
+      let filteredTours = tours;
+      
+      // Apply filters if provided
+      if (location) {
+        filteredTours = filteredTours.filter(tour => tour.location === location);
+      }
+      
+      if (minPrice) {
+        filteredTours = filteredTours.filter(tour => tour.price >= parseInt(minPrice));
+      }
+      if (maxPrice) {
+        filteredTours = filteredTours.filter(tour => tour.price <= parseInt(maxPrice));
+      }
+      
+      return res.json(filteredTours);
+    }
+    
+    // Firebase mode
+    let query = db.collection('tours');
+    
+    // BUG: Query optimization needed for Firebase
+    if (location) {
+      query = query.where('location', '==', location);
+    }
+    
+    const snapshot = await query.get();
+    const tours = [];
+    
+    snapshot.forEach(doc => {
+      const tourData = doc.data();
+      
+      if (minPrice && tourData.price < parseInt(minPrice)) {
+        return;
+      }
+      if (maxPrice && tourData.price > parseInt(maxPrice)) {
+        return;
+      }
+      
+      tours.push({
+        id: doc.id,
+        ...tourData
+      });
+    });
+    
+    // PERFORMANCE ISSUE: No caching implemented
+    res.json(tours);
+  } catch (error) {
+    console.error('Error fetching tours:', error);
+    res.status(500).json({ error: 'Failed to fetch tours' });
+  }
+};
+
+const getTourById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if using JSON Server mode
+    if (process.env.USE_JSON_SERVER === 'true') {
+      const fetch = require('node-fetch');
+      const response = await fetch(`http://localhost:3002/tours/${id}`);
+      
+      if (!response.ok) {
+        return res.status(404).json({ error: 'Tour not found' });
+      }
+      
+      const tour = await response.json();
+      return res.json(tour);
+    }
+    
+    // Firebase mode
+    const doc = await db.collection('tours').doc(id).get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Tour not found' });
+    }
+    
+    res.json({
+      id: doc.id,
+      ...doc.data()
+    });
+  } catch (error) {
+    console.error('Error fetching tour:', error);
+    res.status(500).json({ error: 'Failed to fetch tour' });
+  }
+};
+
+// TODO: Implement search functionality for the test
+const searchTours = async (req, res) => {
+  // This is where candidates will implement the search functionality
+  res.status(501).json({ error: 'Search functionality not implemented yet' });
+};
+
+module.exports = {
+  getTours,
+  getTourById,
+  searchTours
+};
