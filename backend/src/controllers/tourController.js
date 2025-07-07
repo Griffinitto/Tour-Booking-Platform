@@ -6,95 +6,163 @@ const { db } = require('../config/firebase');
  * Fetches tours from either a local JSON Server or Firebase Firestore,
  * optionally filtering by location, minPrice, and maxPrice.
  */
+const express = require('express');
+const fetch = require('node-fetch');
+
+
+// Shared helper: validate and parse numeric filters
+function parsePriceFilters(query) {
+  const errors = [];
+  let minPriceNum, maxPriceNum;
+
+  if (query.minPrice !== undefined) {
+    minPriceNum = Number(query.minPrice);
+    if (Number.isNaN(minPriceNum) || minPriceNum < 0) {
+      errors.push("`minPrice` must be a non-negative number or not provided");
+    }
+  }
+  if (query.maxPrice !== undefined) {
+    maxPriceNum = Number(query.maxPrice);
+    if (Number.isNaN(maxPriceNum) || maxPriceNum < 0) {
+      errors.push("`maxPrice` must be a non-negative number");
+    }
+  }
+  if (
+    minPriceNum !== undefined &&
+    maxPriceNum !== undefined &&
+    minPriceNum > maxPriceNum
+  ) {
+    errors.push("`minPrice` cannot be greater than `maxPrice`");
+  }
+
+  return { errors, minPriceNum, maxPriceNum };
+}
+
+// Shared filter function
+function applyPriceFilter(tour, minPriceNum, maxPriceNum) {
+  if (minPriceNum !== undefined && tour.price < minPriceNum) return false;
+  if (maxPriceNum !== undefined && tour.price > maxPriceNum) return false;
+  return true;
+}
+
+// GET /api/tours
 const getTours = async (req, res) => {
   try {
-    const { location, minPrice, maxPrice } = req.query;
+    const { location } = req.query;
+    const { errors, minPriceNum, maxPriceNum } = parsePriceFilters(req.query);
 
-    // Validate numeric filters
-    const errors = [];
-    let minPriceNum, maxPriceNum;
-
-    if (minPrice !== undefined) {
-      minPriceNum = Number(minPrice);
-      if (Number.isNaN(minPriceNum) || minPriceNum < 0) {
-        errors.push("`minPrice` must be a non-negative number or not provided");
-      }
-    }
-    if (maxPrice !== undefined) {
-      maxPriceNum = Number(maxPrice);
-      if (Number.isNaN(maxPriceNum) || maxPriceNum < 0) {
-        errors.push("`maxPrice` must be a non-negative number");
-      }
-    }
-    if (minPriceNum !== undefined && maxPriceNum !== undefined && minPriceNum > maxPriceNum) {
-      errors.push("`minPrice` cannot be greater than `maxPrice`");
-    }
-
-    if (errors.length > 0) {
-      // 400 Bad Request for client-side input errors
+    if (errors.length) {
       return res.status(400).json({ errors });
     }
 
-    // Helper to apply price filters on an array of tours
-    const applyPriceFilter = tour => {
-      if (minPriceNum !== undefined && tour.price < minPriceNum) return false;
-      if (maxPriceNum !== undefined && tour.price > maxPriceNum) return false;
-      return true;
-    };
-
-    // === JSON Server Mode ===
+    // JSON Server mode
     if (process.env.USE_JSON_SERVER === 'true') {
-      const fetch = require('node-fetch');
       const response = await fetch('http://localhost:3002/tours');
-
       if (!response.ok) {
-        // 502 Bad Gateway if JSON Server is unreachable or fails
         return res
           .status(502)
-          .json({ error: "Failed to fetch tours from JSON Server" });
+          .json({ error: 'Failed to fetch tours from JSON Server' });
       }
-
       let tours = await response.json();
-
-      // Apply optional filters
       if (location) {
         tours = tours.filter(t => t.location === location);
       }
-      tours = tours.filter(applyPriceFilter);
-
+      tours = tours.filter(t => applyPriceFilter(t, minPriceNum, maxPriceNum));
       return res.json(tours);
     }
 
-    // === Firebase Mode ===
-    // Start building the Firestore query
+    // Firestore mode
     let query = db.collection('tours');
     if (location) {
       query = query.where('location', '==', location);
     }
-
     const snapshot = await query.get();
     const tours = [];
-
     snapshot.forEach(doc => {
       const data = doc.data();
-      // Apply price filtering in-memory
-      if (applyPriceFilter(data)) {
+      if (applyPriceFilter(data, minPriceNum, maxPriceNum)) {
         tours.push({ id: doc.id, ...data });
       }
     });
 
-    // TODO: Integrate caching layer here (e.g., Redis or in-memory TTL cache)
     return res.json(tours);
-
   } catch (err) {
     console.error('Error in getTours:', err);
-    // 500 Internal Server Error for unexpected failures
     return res
       .status(500)
-      .json({ error: "An unexpected error occurred while fetching tours" });
+      .json({ error: 'An unexpected error occurred while fetching tours' });
   }
 };
 
+// GET /api/tours/search
+const searchTours = async (req, res) => {
+  try {
+    const { name, location } = req.query;
+    const { errors, minPriceNum, maxPriceNum } = parsePriceFilters(req.query);
+
+    // Validate `name` if provided
+    if (name !== undefined && typeof name !== 'string') {
+      errors.push('`name` must be a string');
+    }
+
+    if (errors.length) {
+      return res.status(400).json({ errors });
+    }
+
+    // JSON Server mode
+    if (process.env.USE_JSON_SERVER === 'true') {
+      const response = await fetch('http://localhost:3002/tours');
+      if (!response.ok) {
+        return res
+          .status(502)
+          .json({ error: 'Failed to fetch tours from JSON Server' });
+      }
+      let tours = await response.json();
+
+      // Apply filters
+      if (name) {
+        const lowerName = name.toLowerCase();
+        tours = tours.filter(t =>
+          t.name.toLowerCase().includes(lowerName)
+        );
+      }
+      if (location) {
+        tours = tours.filter(t => t.location === location);
+      }
+      tours = tours.filter(t => applyPriceFilter(t, minPriceNum, maxPriceNum));
+
+      return res.json(tours);
+    }
+
+    // Firestore mode
+    let query = db.collection('tours');
+    if (location) {
+      query = query.where('location', '==', location);
+    }
+    const snapshot = await query.get();
+    let tours = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      tours.push({ id: doc.id, ...data });
+    });
+
+    // Apply in-memory filters for name & price
+    if (name) {
+      const lowerName = name.toLowerCase();
+      tours = tours.filter(t =>
+        t.name.toLowerCase().includes(lowerName)
+      );
+    }
+    tours = tours.filter(t => applyPriceFilter(t, minPriceNum, maxPriceNum));
+
+    return res.json(tours);
+  } catch (err) {
+    console.error('Error in searchTours:', err);
+    return res
+      .status(500)
+      .json({ error: 'An unexpected error occurred during tour search' });
+  }
+};
 
 const getTourById = async (req, res) => {
   try {
@@ -131,10 +199,7 @@ const getTourById = async (req, res) => {
 };
 
 // TODO: Implement search functionality for the test
-const searchTours = async (req, res) => {
-  // This is where candidates will implement the search functionality
-  res.status(501).json({ error: 'Search functionality not implemented yet' });
-};
+
 
 module.exports = {
   getTours,
