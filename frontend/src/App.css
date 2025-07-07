@@ -228,7 +228,7 @@
   margin-bottom: 2rem;
 }
 
-/* BUG: Responsive design issues - this is intentional for the test */
+
 @media (max-width: 768px) {
   .nav {
     flex-direction: column;
