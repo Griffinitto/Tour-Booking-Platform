@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 let db, auth;
 
 // Only initialize Firebase if not using JSON Server
-if (process.env.USE_JSON_SERVER !== 'true') {
+if (process.env.USE_JSON_SERVER != 'true') {
   try {
     const serviceAccount = {
       type: "service_account",

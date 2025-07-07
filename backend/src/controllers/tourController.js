@@ -1,68 +1,100 @@
 const { db } = require('../config/firebase');
 
 // BUG: Error handling is incomplete - needs improvement for the test
+/**
+ * GET /tours
+ * Fetches tours from either a local JSON Server or Firebase Firestore,
+ * optionally filtering by location, minPrice, and maxPrice.
+ */
 const getTours = async (req, res) => {
   try {
     const { location, minPrice, maxPrice } = req.query;
 
-    // Check if using JSON Server mode
+    // Validate numeric filters
+    const errors = [];
+    let minPriceNum, maxPriceNum;
+
+    if (minPrice !== undefined) {
+      minPriceNum = Number(minPrice);
+      if (Number.isNaN(minPriceNum) || minPriceNum < 0) {
+        errors.push("`minPrice` must be a non-negative number or not provided");
+      }
+    }
+    if (maxPrice !== undefined) {
+      maxPriceNum = Number(maxPrice);
+      if (Number.isNaN(maxPriceNum) || maxPriceNum < 0) {
+        errors.push("`maxPrice` must be a non-negative number");
+      }
+    }
+    if (minPriceNum !== undefined && maxPriceNum !== undefined && minPriceNum > maxPriceNum) {
+      errors.push("`minPrice` cannot be greater than `maxPrice`");
+    }
+
+    if (errors.length > 0) {
+      // 400 Bad Request for client-side input errors
+      return res.status(400).json({ errors });
+    }
+
+    // Helper to apply price filters on an array of tours
+    const applyPriceFilter = tour => {
+      if (minPriceNum !== undefined && tour.price < minPriceNum) return false;
+      if (maxPriceNum !== undefined && tour.price > maxPriceNum) return false;
+      return true;
+    };
+
+    // === JSON Server Mode ===
     if (process.env.USE_JSON_SERVER === 'true') {
-      // In JSON Server mode, proxy to JSON Server
       const fetch = require('node-fetch');
       const response = await fetch('http://localhost:3002/tours');
-      const tours = await response.json();
-      
-      let filteredTours = tours;
-      
-      // Apply filters if provided
+
+      if (!response.ok) {
+        // 502 Bad Gateway if JSON Server is unreachable or fails
+        return res
+          .status(502)
+          .json({ error: "Failed to fetch tours from JSON Server" });
+      }
+
+      let tours = await response.json();
+
+      // Apply optional filters
       if (location) {
-        filteredTours = filteredTours.filter(tour => tour.location === location);
+        tours = tours.filter(t => t.location === location);
       }
-      
-      if (minPrice) {
-        filteredTours = filteredTours.filter(tour => tour.price >= parseInt(minPrice));
-      }
-      if (maxPrice) {
-        filteredTours = filteredTours.filter(tour => tour.price <= parseInt(maxPrice));
-      }
-      
-      return res.json(filteredTours);
+      tours = tours.filter(applyPriceFilter);
+
+      return res.json(tours);
     }
-    
-    // Firebase mode
+
+    // === Firebase Mode ===
+    // Start building the Firestore query
     let query = db.collection('tours');
-    
-    // BUG: Query optimization needed for Firebase
     if (location) {
       query = query.where('location', '==', location);
     }
-    
+
     const snapshot = await query.get();
     const tours = [];
-    
+
     snapshot.forEach(doc => {
-      const tourData = doc.data();
-      
-      if (minPrice && tourData.price < parseInt(minPrice)) {
-        return;
+      const data = doc.data();
+      // Apply price filtering in-memory
+      if (applyPriceFilter(data)) {
+        tours.push({ id: doc.id, ...data });
       }
-      if (maxPrice && tourData.price > parseInt(maxPrice)) {
-        return;
-      }
-      
-      tours.push({
-        id: doc.id,
-        ...tourData
-      });
     });
-    
-    // PERFORMANCE ISSUE: No caching implemented
-    res.json(tours);
-  } catch (error) {
-    console.error('Error fetching tours:', error);
-    res.status(500).json({ error: 'Failed to fetch tours' });
+
+    // TODO: Integrate caching layer here (e.g., Redis or in-memory TTL cache)
+    return res.json(tours);
+
+  } catch (err) {
+    console.error('Error in getTours:', err);
+    // 500 Internal Server Error for unexpected failures
+    return res
+      .status(500)
+      .json({ error: "An unexpected error occurred while fetching tours" });
   }
 };
+
 
 const getTourById = async (req, res) => {
   try {
