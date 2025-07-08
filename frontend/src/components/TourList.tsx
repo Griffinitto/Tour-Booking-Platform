@@ -1,43 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { getTours } from '../services/api';
+import React from 'react';
 import TourCard from './TourCard';
 import { Tour } from '../types';
 
-interface TourListProps {
-  user: any;
+interface Props {
+  tours: Tour[];
 }
 
-// PERFORMANCE ISSUE: Component re-renders unnecessarily - this is intentional for the test
-const TourList: React.FC<TourListProps> = ({ user }) => {
-  const [tours, setTours] = useState<Tour[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchTours = async () => {
-      try {
-        setLoading(true);
-        const data = await getTours();
-        setTours(data);
-      } catch (err) {
-        setError('Failed to load tours');
-        console.error('Error fetching tours:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTours();
-  }, [user]); // BUG: Re-fetches on every user state change - this is intentional for the test
-
-  if (loading) return <div className="loading">Loading tours...</div>;
-  if (error) return <div className="error">{error}</div>;
+const TourList: React.FC<Props> = ({ tours }) => {
+  if (tours.length === 0) {
+    return <p>No tours available.</p>;
+  }
 
   return (
     <div className="tour-list">
       <h2>Available Tours</h2>
       <div className="tours-grid">
-        {tours.map(tour => (
+        {tours.map((tour) => (
           <TourCard key={tour.id} tour={tour} />
         ))}
       </div>
@@ -45,4 +23,4 @@ const TourList: React.FC<TourListProps> = ({ user }) => {
   );
 };
 
-export default TourList;
+export default React.memo(TourList);
