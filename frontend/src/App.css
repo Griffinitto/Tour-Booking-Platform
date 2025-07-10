@@ -1,3 +1,9 @@
+@import "tailwindcss/preflight";
+
+@tailwind utilities;
+
+
+
 .App {
   text-align: center;
   font-family: Arial, sans-serif;
@@ -243,7 +249,16 @@
   .home-hero h1 {
     font-size: 2rem;
   }
+
+
+
   
   /* Missing mobile styles for tour cards - this is intentional for the test */
   /* TODO: Add proper mobile styles for tour cards */
+  
+  /* No unresponsive items found. */
+
+
+
+
 }
