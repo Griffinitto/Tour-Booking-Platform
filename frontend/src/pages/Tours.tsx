@@ -8,10 +8,15 @@ import TourList from '../components/TourList';
 const Tours: React.FC = () => {
   const [allTours, setAllTours] = useState<Tour[]>([]);
   const [filters, setFilters] = useState<FilterValues>({
+    // name: '',
+    // location: '',
+    // // minPrice: '',
+    // // maxPrice: '',
+    // minRating: '',
+    // duration: '',
     name: '',
     location: '',
-    minPrice: '',
-    maxPrice: '',
+    priceRange: '',
     minRating: '',
     duration: '',
   });
@@ -39,31 +44,49 @@ const Tours: React.FC = () => {
   }, []);
 
   // memoized filtered list
-  const filteredTours = useMemo(
-    () =>
-      allTours.filter((t) => {
-        const { name, location, minPrice, maxPrice, minRating, duration } = filters;
-        const term = name.toLowerCase();
-        if (term && !t.name.toLowerCase().includes(term) && !t.description.toLowerCase().includes(term)) {
-          return false;
-        }
-        if (location && !t.location.toLowerCase().includes(location.toLowerCase())) {
-          return false;
-        }
-        const mp = minPrice ? Number(minPrice) : undefined;
-        const xp = maxPrice ? Number(maxPrice) : undefined;
-        const mr = minRating ? Number(minRating) : undefined;
-        const dr = duration ? Number(duration) : undefined;
+ const filteredTours = useMemo(
+  () =>
+    allTours.filter((t) => {
+      const { name, location, priceRange, minRating, duration } = filters;
+      const term = name.toLowerCase();
 
-        if (mp != null && t.price < mp) return false;
-        if (xp != null && t.price > xp) return false;
-        if (mr != null && t.rating < mr) return false;
-        if (dr != null && t.duration !== dr) return false;
+      // text search
+      if (
+        term &&
+        !t.name.toLowerCase().includes(term) &&
+        !t.description.toLowerCase().includes(term)
+      ) {
+        return false;
+      }
 
-        return true;
-      }),
-    [allTours, filters]
-  );
+      // location dropdown
+      if (location && !t.location.toLowerCase().includes(location.toLowerCase())) {
+        return false;
+      }
+
+      // parse priceRange (e.g. "50-100", "200-")
+      let mp: number | undefined;
+      let xp: number | undefined;
+      if (priceRange) {
+        const [minStr, maxStr] = priceRange.split('-');
+        if (minStr) mp = Number(minStr);
+        if (maxStr) xp = Number(maxStr);
+      }
+
+      // numeric filters
+      const mr = minRating ? Number(minRating) : undefined;
+      const dr = duration ? Number(duration) : undefined;
+
+      if (mp != null && t.price < mp) return false;
+      if (xp != null && t.price > xp) return false;
+      if (mr != null && t.rating < mr) return false;
+      if (dr != null && t.duration !== dr) return false;
+
+      return true;
+    }),
+  [allTours, filters]
+);
+
 
   const onFiltersChange = useCallback((newFilters: FilterValues) => {
     setFilters(newFilters);
