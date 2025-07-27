@@ -253,6 +253,8 @@
 
 .filter-tours-form div {
 	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
 	gap: 1rem;
 }
 

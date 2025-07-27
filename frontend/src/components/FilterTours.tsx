@@ -76,7 +76,7 @@ const FilterTours: React.FC<FilterToursProps> = ({ setFilters }) => {
 
 	return (
 		<form onSubmit={handleSubmit} className="filter-tours-form">
-			<div className="flex flex-col md:flex-row gap-4 mb-4">
+			<div>
 				<input
 					type="text"
 					placeholder="Search by tour name"
