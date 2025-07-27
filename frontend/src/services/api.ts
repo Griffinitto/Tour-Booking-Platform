@@ -72,14 +72,25 @@ export const loginUser = async (email: string, password: string) => {
   return response.json();
 };
 
+// Returns a unique list of tour locations
 export const getLocations = async () => {
-	const response = await fetch(`${API_BASE_URL}/tours`);
-	if (!response.ok) {
-		throw new Error("Failed to fetch tours");
+	try {
+		const response = await fetch(`${API_BASE_URL}/tours`);
+		if (!response.ok) {
+			throw new Error("Failed to fetch tours");
+		}
+		const data = await response.json();
+
+		const locations = data.map((tour: Tour) => tour.location);
+
+    // Filters locations to be unique
+		const result = locations.filter(
+			(location: string, index: number) =>
+				locations.indexOf(location) === index,
+		);
+
+		return result;
+	} catch (error) {
+		throw new Error("Failed to fetch locations");
 	}
-	const data = await response.json();
-
-	const result = data?.map((tour: Tour) => tour.location);
-
-	return result;
 };

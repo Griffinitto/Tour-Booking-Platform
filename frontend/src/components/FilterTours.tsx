@@ -75,21 +75,15 @@ const FilterTours: React.FC<FilterToursProps> = ({ setFilters }) => {
 	if (error) return <div className="error">{error}</div>;
 
 	return (
-		<form onSubmit={handleSubmit} className="mb-6 p-4 bg-gray-100 rounded-lg">
-			<h2 className="text-xl font-semibold mb-4">Filter Tours</h2>
+		<form onSubmit={handleSubmit} className="filter-tours-form">
 			<div className="flex flex-col md:flex-row gap-4 mb-4">
 				<input
 					type="text"
 					placeholder="Search by tour name"
 					value={name}
 					onChange={(e) => setName(e.target.value)}
-					className="border rounded p-2 w-full md:w-1/3"
 				/>
-				<select
-					value={location}
-					onChange={(e) => setLocation(e.target.value)}
-					className="border rounded p-2 w-full md:w-1/3"
-				>
+				<select value={location} onChange={(e) => setLocation(e.target.value)}>
 					<option value="">Select Location</option>
 					{locations.map((loc) => (
 						<option key={loc} value={loc}>
@@ -100,7 +94,6 @@ const FilterTours: React.FC<FilterToursProps> = ({ setFilters }) => {
 				<select
 					value={priceRange}
 					onChange={(e) => setPriceRange(e.target.value)}
-					className="border rounded p-2 w-full md:w-1/3"
 				>
 					<option value="">Select Price Range</option>
 					{PRICE_RANGE.map((range) => (
@@ -110,18 +103,9 @@ const FilterTours: React.FC<FilterToursProps> = ({ setFilters }) => {
 					))}
 				</select>
 			</div>
-			<div className="flex gap-4">
-				<button
-					type="submit"
-					className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-				>
-					Apply Filters
-				</button>
-				<button
-					type="button"
-					onClick={handleReset}
-					className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-				>
+			<div>
+				<button type="submit">Apply Filters</button>
+				<button type="reset" onClick={handleReset}>
 					Reset Filters
 				</button>
 			</div>

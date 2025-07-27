@@ -9,7 +9,16 @@ const TourCard: React.FC<TourCardProps> = ({ tour }) => {
 	return (
 		<div className="tour-card">
 			{/* PERFORMANCE ISSUE: Images load without optimization - this is intentional for the test */}
-			<img src={tour.image} alt={tour.name} className="tour-image" />
+			<div className="tour-image-container">
+				<img
+					src={tour.image}
+					alt={tour.name}
+					className="tour-image"
+					loading="lazy"
+					width="324"
+					height="200"
+				/>
+			</div>
 			<div className="tour-info">
 				<h3>{tour.name}</h3>
 				<p className="tour-location">{tour.location}</p>

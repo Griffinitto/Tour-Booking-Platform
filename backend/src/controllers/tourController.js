@@ -137,6 +137,7 @@ const searchTours = async (req, res) => {
 	try {
 		const { name, location, minPrice, maxPrice } = req.query;
 
+		// Validate query parameters
 		if (name && typeof name !== "string")
 			return res.status(400).json({
 				error: "Invalid Input",
@@ -169,7 +170,7 @@ const searchTours = async (req, res) => {
 
 		if (process.env.USE_JSON_SERVER === "true") {
 			try {
-				// In JSON Server mode, proxy to JSON Server
+				// Fetch tours data from JSON Server
 				const fetch = require("node-fetch");
 				const response = await fetch("http://localhost:3002/tours");
 				const tours = await response.json();
@@ -206,8 +207,8 @@ const searchTours = async (req, res) => {
 			}
 		}
 	} catch (error) {
+		// Handle errors and return server error response
 		console.error("An error happened in searchTours: ", error);
-
 		return res.status(502).json({
 			error: "Failed to get data from server",
 			message: `Error Details: ${error.message}`,
