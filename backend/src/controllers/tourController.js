@@ -134,8 +134,85 @@ const getTourById = async (req, res) => {
 
 // TODO: Implement search functionality for the test
 const searchTours = async (req, res) => {
-	// This is where candidates will implement the search functionality
-	res.status(501).json({ error: "Search functionality not implemented yet" });
+	try {
+		const { name, location, minPrice, maxPrice } = req.query;
+
+		if (name && typeof name !== "string")
+			return res.status(400).json({
+				error: "Invalid Input",
+				message: "Search is not valid",
+			});
+
+		if (location && typeof location !== "string")
+			return res.status(400).json({
+				error: "Invalid Input",
+				message: "Location is not valid",
+			});
+
+		if (minPrice && (isNaN(minPrice) || +minPrice < 0))
+			return res.status(400).json({
+				error: "Invalid input",
+				message: "minimum price is not valid.",
+			});
+
+		if (maxPrice && (isNaN(maxPrice) || +maxPrice < 0))
+			return res.status(400).json({
+				error: "Invalid input",
+				message: "maximum price is not valid.",
+			});
+
+		if (maxPrice && minPrice && +minPrice > +maxPrice)
+			return res.status(400).json({
+				error: "Invalid input",
+				message: "maximum price must be greater than minimum price.",
+			});
+
+		if (process.env.USE_JSON_SERVER === "true") {
+			try {
+				// In JSON Server mode, proxy to JSON Server
+				const fetch = require("node-fetch");
+				const response = await fetch("http://localhost:3002/tours");
+				const tours = await response.json();
+
+				let filteredTours = tours;
+
+				// Apply filters if provided
+				if (name) {
+					filteredTours = filteredTours.filter((tour) =>
+						tour.name.toLowerCase().includes(name.toLowerCase()),
+					);
+				}
+
+				if (location) {
+					filteredTours = filteredTours.filter(
+						(tour) => tour.location === location,
+					);
+				}
+
+				if (minPrice) {
+					filteredTours = filteredTours.filter(
+						(tour) => tour.price >= parseInt(minPrice),
+					);
+				}
+				if (maxPrice) {
+					filteredTours = filteredTours.filter(
+						(tour) => tour.price <= parseInt(maxPrice),
+					);
+				}
+
+				return res.status(200).json(filteredTours);
+			} catch (error) {
+				throw new Error(error);
+			}
+		}
+	} catch (error) {
+		console.error("An error happened in searchTours: ", error);
+
+		return res.status(502).json({
+			error: "Failed to get data from server",
+			message: `Error Details: ${error.message}`,
+		});
+	}
 };
 
 module.exports = {

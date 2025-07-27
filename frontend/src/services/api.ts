@@ -1,3 +1,5 @@
+import { Tour } from "../types";
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export const getTours = async () => {
@@ -68,4 +70,16 @@ export const loginUser = async (email: string, password: string) => {
   }
   
   return response.json();
+};
+
+export const getLocations = async () => {
+	const response = await fetch(`${API_BASE_URL}/tours`);
+	if (!response.ok) {
+		throw new Error("Failed to fetch tours");
+	}
+	const data = await response.json();
+
+	const result = data?.map((tour: Tour) => tour.location);
+
+	return result;
 };

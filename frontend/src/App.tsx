@@ -7,7 +7,7 @@ import Header from './components/Header';
 import Home from './pages/Home';
 import Tours from './pages/Tours';
 import Login from './pages/Login';
-import './App.css';
+import './styles/App.css';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);

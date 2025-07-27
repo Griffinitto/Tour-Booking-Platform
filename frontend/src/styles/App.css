@@ -159,6 +159,29 @@
 	font-size: 0.9rem;
 }
 
+.tour-image-loading {
+	display: block;
+	width: 100%;
+	height: 200px;
+	border-radius: 8px;
+}
+
+.tour-info-heading-loading {
+	display: block;
+	margin: 0 auto;
+	width: 200px;
+	height: 2rem;
+	border-radius: 4px;
+}
+
+.tour-info-paragraph-loading {
+	display: block;
+	margin: 0.5rem auto 0;
+	width: 100px;
+	height: 1rem;
+	border-radius: 4px;
+}
+
 .loading {
 	padding: 2rem;
 	font-size: 1.2rem;
