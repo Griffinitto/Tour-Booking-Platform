@@ -1,3 +1,5 @@
+import { Tour } from "../types";
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 export const getTours = async () => {
@@ -68,4 +70,27 @@ export const loginUser = async (email: string, password: string) => {
   }
   
   return response.json();
+};
+
+// Returns a unique list of tour locations
+export const getLocations = async () => {
+	try {
+		const response = await fetch(`${API_BASE_URL}/tours`);
+		if (!response.ok) {
+			throw new Error("Failed to fetch tours");
+		}
+		const data = await response.json();
+
+		const locations = data.map((tour: Tour) => tour.location);
+
+    // Filters locations to be unique
+		const result = locations.filter(
+			(location: string, index: number) =>
+				locations.indexOf(location) === index,
+		);
+
+		return result;
+	} catch (error) {
+		throw new Error("Failed to fetch locations");
+	}
 };

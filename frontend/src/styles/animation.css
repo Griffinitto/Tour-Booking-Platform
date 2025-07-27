@@ -1,0 +1,22 @@
+.loading-animation {
+	background: linear-gradient(
+		90deg,
+		#eeeeee 0%,
+		#eeeeee 35%,
+		#dddddd 45%,
+		#dddddd 55%,
+		#eee 65%,
+		#eee 100%
+	);
+	background-size: 400% 100%; /* Initial large background size */
+	animation: loading 1.5s infinite linear;
+}
+
+@keyframes loading {
+	0% {
+		background-position: 100%;
+	}
+	100% {
+		background-position: -100%;
+	}
+}
