@@ -3,8 +3,12 @@ import { getTours } from "../services/api";
 import TourCard from "./TourCard";
 import { Tour } from "../types";
 
+interface TourListProps {
+	user: any;
+}
+
 // PERFORMANCE ISSUE: Component re-renders unnecessarily - this is intentional for the test
-const TourList: React.FC = () => {
+const TourList: React.FC<TourListProps> = ({ user }) => {
 	const [tours, setTours] = useState<Tour[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
